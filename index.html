@@ -1,0 +1,137 @@
+<!DOCTYPE html><html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Моя больница</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#eaf2f8;color:#203040}
+header{background:#087f8c;color:white;padding:20px;text-align:center}
+header h1{margin:0 0 8px}
+.stats{display:flex;justify-content:center;gap:18px;flex-wrap:wrap}
+main{max-width:850px;margin:auto;padding:15px}
+.card{background:white;border-radius:14px;padding:16px;margin:12px 0;box-shadow:0 3px 12px #0001}
+h2{margin-top:0;color:#087f8c}
+button{background:#087f8c;color:white;border:0;border-radius:9px;padding:12px 15px;margin:5px 3px;font-size:15px;cursor:pointer}
+button:disabled{background:#9aa7ad}
+.patient{border-left:5px solid #e9a23b}
+.good{color:#087f45;font-weight:bold}
+.bad{color:#c0392b}
+.small{color:#667788;font-size:14px}
+</style>
+</head>
+<body>
+<header>
+<h1>🏥 МОЯ БОЛЬНИЦА</h1>
+<p>Стань главным врачом!</p>
+<div class="stats">
+<span>💰 Деньги: <b id="money">500</b> ₽</span>
+<span>❤️ Репутация: <b id="rep">50</b></span>
+<span>🩺 Вылечено: <b id="cured">0</b></span>
+</div>
+</header>
+<main>
+<div class="card">
+<h2>🏥 Главный корпус</h2>
+<p>Управляй больницей, принимай пациентов и помогай им выздороветь.</p>
+<p>🛏️ Коек: <b id="beds">3</b> | 👨‍⚕️ Врачей: <b id="doctors">1</b></p>
+<button onclick="upgrade()">➕ Купить койку — 200 ₽</button>
+<button onclick="hire()">👨‍⚕️ Нанять врача — 300 ₽</button>
+</div>
+<div class="card">
+<h2>🚑 Приёмное отделение</h2>
+<p id="arrival">Новый пациент ожидает приёма.</p>
+<button onclick="newPatient()">🚑 Принять пациента</button>
+</div>
+<div class="card">
+<h2>🩺 Пациенты</h2>
+<div id="patients"><p class="small">Пока пациентов нет. Нажми «Принять пациента».</p></div>
+</div>
+<div class="card">
+<h2>🚨 Отделение реанимации</h2>
+<p>Здесь лечат самых тяжёлых пациентов. Каждое действие требует ресурсов.</p>
+<button onclick="buildICU()">🏗️ Открыть реанимацию — 400 ₽</button>
+<p id="icu">Реанимация пока закрыта.</p>
+</div>
+<div class="card">
+<h2>📋 Журнал больницы</h2>
+<div id="log">🏥 Больница открыта! Ждём первого пациента.</div>
+</div>
+</main>
+<script>
+let money=500,rep=50,cured=0,beds=3,doctors=1,icu=false;
+let patients=[],nextId=1;
+const cases=[
+{name:"Анна",ill:"простуда",severity:1,treatment:"Осмотр и отдых",cost:50},
+{name:"Иван",ill:"обезвоживание",severity:1,treatment:"Осмотр и восполнение жидкости",cost:70},
+{name:"Мария",ill:"высокая температура",severity:2,treatment:"Осмотр и лечение по показаниям",cost:100},
+{name:"Олег",ill:"травма ноги",severity:2,treatment:"Осмотр и помощь при травме",cost:120},
+{name:"Сергей",ill:"тяжёлое состояние",severity:3,treatment:"Стабилизация и помощь команды",cost:180}
+];
+function update(){
+document.getElementById("money").textContent=money;
+document.getElementById("rep").textContent=rep;
+document.getElementById("cured").textContent=cured;
+document.getElementById("beds").textContent=beds;
+document.getElementById("doctors").textContent=doctors;
+render();
+}
+function say(text){
+document.getElementById("log").innerHTML="📌 "+text+"<br>"+document.getElementById("log").innerHTML;
+}
+function newPatient(){
+if(patients.length>=beds){say("Нет свободных коек! Купи дополнительную койку или вылечи пациента.");return}
+let c=cases[Math.floor(Math.random()*cases.length)];
+let p={...c,id:nextId++,treated:false};
+patients.push(p);
+document.getElementById("arrival").textContent=p.name+" поступил(а): "+p.ill+".";
+say("Поступил пациент "+p.name+". Требуется: "+p.ill+".");
+update();
+}
+function treat(id){
+let p=patients.find(x=>x.id===id);
+if(!p||p.treated)return;
+let cost=p.cost;
+if(p.severity===3&&!icu){say("Тяжёлого пациента нужно направить в открытую реанимацию.");return}
+if(money<cost){say("Недостаточно денег для лечения.");return}
+money-=cost;
+p.treated=true;
+p.result="Лечение завершено";
+cured++;
+rep=Math.min(100,rep+2);
+money+=cost+100;
+say(p.name+" получил(а) помощь: "+p.treatment+". Пациент выписан. +100 ₽.");
+patients=patients.filter(x=>x.id!==id);
+update();
+}
+function upgrade(){
+if(money<200){say("Недостаточно денег.");return}
+money-=200;beds++;say("Добавлена новая койка!");update();
+}
+function hire(){
+if(money<300){say("Недостаточно денег.");return}
+money-=300;doctors++;say("Нанят новый врач!");update();
+}
+function buildICU(){
+if(icu){say("Реанимация уже работает.");return}
+if(money<400){say("Нужно 400 ₽ для открытия реанимации.");return}
+money-=400;icu=true;
+document.getElementById("icu").textContent="✅ Реанимация открыта! Можно лечить тяжёлых пациентов.";
+say("Открыто отделение реанимации.");update();
+}
+function render(){
+let box=document.getElementById("patients");
+if(!patients.length){box.innerHTML='<p class="small">Свободных пациентов нет.</p>';return}
+box.innerHTML=patients.map(p=>`
+<div class="card patient">
+<h3>🧑‍⚕️ ${p.name}</h3>
+<p>Жалоба: ${p.ill}</p>
+<p>Сложность: ${"⭐".repeat(p.severity)}</p>
+<p class="small">План помощи: ${p.treatment}</p>
+<button onclick="treat(${p.id})">🩺 Провести лечение</button>
+</div>`).join("");
+}
+update();
+</script>
+</body>
+</html>

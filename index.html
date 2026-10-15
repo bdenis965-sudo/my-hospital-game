@@ -135,3 +135,430 @@ update();
 </script>
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Моя больница</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#edf3f8;color:#203047;font-family:Arial,sans-serif}
+header{background:#087f8c;color:white;padding:20px 12px;text-align:center}
+header h1{margin:0 0 8px}
+header p{margin:5px}
+.stats{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:15px}
+.stat{background:#ffffff20;border-radius:10px;padding:10px}
+main{max-width:1000px;margin:auto;padding:12px}
+nav{display:flex;gap:7px;overflow-x:auto;padding:8px 0}
+nav button{white-space:nowrap}
+button{border:0;border-radius:9px;padding:12px;background:#087f8c;color:white;font-size:14px;font-weight:bold;cursor:pointer}
+button:disabled{opacity:.4;cursor:not-allowed}
+button.secondary{background:#e1ebf2;color:#203047}
+button.danger{background:#bd4242}
+.panel{background:white;padding:16px;border-radius:14px;margin:12px 0;box-shadow:0 3px 12px #1020300b}
+h2{margin-top:0;color:#087f8c;font-size:21px}
+h3{margin:7px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+.item{padding:13px;border:1px solid #dce5ed;border-radius:12px;background:#fbfdff;min-width:0}
+.item p{font-size:14px;line-height:1.5}
+.muted{color:#68798a;font-size:13px;line-height:1.5}
+.badge{display:inline-block;padding:5px 8px;background:#e1f5ed;color:#176b50;border-radius:7px;font-size:12px}
+.warn{background:#fff0d9;color:#885400}
+.progress{height:7px;background:#e3eaf0;border-radius:10px;overflow:hidden;margin:8px 0}
+.progress span{display:block;height:100%;background:#16a085}
+.actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.actions button{flex:1}
+.hidden{display:none!important}
+#log{max-height:210px;overflow:auto;font-size:13px;line-height:1.8}
+footer{text-align:center;padding:25px;color:#68798a;font-size:12px}
+@media(max-width:400px){header h1{font-size:23px}.stat{font-size:12px;padding:8px}.panel{padding:12px}button{padding:11px 9px}}
+</style>
+</head>
+<body>
+
+<header>
+<h1>🏥 МОЯ БОЛЬНИЦА</h1>
+<p>Управляй больницей, лечи пациентов и развивай медицину!</p>
+<div class="stats">
+<div class="stat">💰 <span id="money">1500</span> ₽</div>
+<div class="stat">🩺 Пациенты: <span id="count">0</span></div>
+<div class="stat">❤️ Репутация: <span id="rep">50</span></div>
+<div class="stat">✅ Вылечено: <span id="cured">0</span></div>
+</div>
+</header>
+
+<main>
+<nav>
+<button data-tab="ward">🏥 Больница</button>
+<button data-tab="equipment">🛒 Оборудование</button>
+<button data-tab="icu">🚨 Реанимация</button>
+<button data-tab="finance">💰 Финансы</button>
+</nav>
+
+<section id="ward" class="tab">
+<div class="panel">
+<h2>🚑 Приёмное отделение</h2>
+<p>Принимай пациентов, проводи обследования и назначай лечение.</p>
+<div class="actions">
+<button id="admit">➕ Принять пациента</button>
+<button id="upgradeBed" class="secondary">🛏️ Новая койка — 200 ₽</button>
+</div>
+<p class="muted">Свободные койки: <b id="beds">3</b>. Максимальная вместимость зависит от количества купленных коек.</p>
+</div>
+
+<div class="panel">
+<h2>⚡ Быстрые действия</h2>
+<p class="muted">Покупай оборудование, чтобы открывать соответствующие функции. Массовые операции выполняются одним нажатием.</p>
+<div class="grid">
+<div class="item">
+<h3>🔍 Общий осмотр</h3>
+<p class="muted">Осмотреть всех поступивших пациентов.</p>
+<button id="bulkExam">Осмотреть всех</button>
+</div>
+<div class="item">
+<h3>💊 Выдача лекарств</h3>
+<p class="muted">Выдать назначенные препараты всем обследованным пациентам.</p>
+<button id="bulkMeds">Выдать лекарства всем</button>
+</div>
+<div class="item">
+<h3>🧪 Анализы</h3>
+<p class="muted">Провести лабораторные исследования всем пациентам.</p>
+<button id="bulkLab">Провести все анализы</button>
+</div>
+<div class="item">
+<h3>🩻 Рентген</h3>
+<p class="muted">Обследовать пациентов с травмами.</p>
+<button id="bulkXray">Сделать рентген</button>
+</div>
+</div>
+</div>
+
+<div class="panel">
+<h2>🧑‍⚕️ Список пациентов</h2>
+<div id="patients" class="grid"></div>
+</div>
+</section>
+
+<section id="equipment" class="tab hidden">
+<div class="panel">
+<h2>🛒 Магазин медицинского оборудования</h2>
+<p>Покупай устройства и улучшай их до пятого уровня. Каждый следующий уровень стоит дороже и повышает эффективность.</p>
+<div id="shop" class="grid"></div>
+</div>
+</section>
+
+<section id="icu" class="tab hidden">
+<div class="panel">
+<h2>🚨 Отделение реанимации</h2>
+<p>Тяжёлые пациенты требуют дополнительного оборудования и внимательного наблюдения.</p>
+<div id="icuInfo"></div>
+<div class="actions">
+<button id="openICU">🏥 Открыть реанимацию — 400 ₽</button>
+<button id="bulkMonitor" class="secondary">🫀 Мониторинг всех</button>
+<button id="bulkInfusion" class="secondary">💉 Инфузионная терапия</button>
+</div>
+</div>
+</section>
+
+<section id="finance" class="tab hidden">
+<div class="panel">
+<h2>💰 Финансы больницы</h2>
+<div class="grid">
+<div class="item">Баланс: <h3 id="financeMoney">1500 ₽</h3></div>
+<div class="item">Вылечено пациентов: <h3 id="financeCured">0</h3></div>
+<div class="item">Общее число коек: <h3 id="financeBeds">3</h3></div>
+<div class="item">Медицинский персонал: <h3 id="financeStaff">1</h3></div>
+</div>
+<p class="muted">За успешное лечение начисляется игровая оплата. Покупки оборудования и улучшений списываются с баланса.</p>
+<div class="actions">
+<button id="hire">👨‍⚕️ Нанять врача — 300 ₽</button>
+<button id="save" class="secondary">💾 Сохранить игру</button>
+<button id="reset" class="danger">Начать заново</button>
+</div>
+</div>
+</section>
+
+<div class="panel">
+<h2>📋 Журнал событий</h2>
+<div id="log" aria-live="polite">🏥 Больница открыта. Готовы принять первых пациентов!</div>
+</div>
+</main>
+
+<footer>Моя больница · Игровая медицинская симуляция</footer>
+
+<script>
+const $=id=>document.getElementById(id);
+
+const equipment=[
+{id:"diag",name:"🔍 Диагностический комплекс",desc:"Осматривает всех пациентов одним нажатием.",price:400},
+{id:"med",name:"💊 Станция выдачи лекарств",desc:"Автоматически выдаёт назначенные препараты.",price:350},
+{id:"xray",name:"🩻 Рентген-аппарат",desc:"Обследует пациентов с травмами.",price:500},
+{id:"lab",name:"🧪 Лаборатория анализов",desc:"Проводит анализы всем пациентам.",price:600},
+{id:"monitor",name:"🫀 Реанимационный монитор",desc:"Позволяет наблюдать за тяжёлыми пациентами.",price:700},
+{id:"infusion",name:"💉 Инфузионные насосы",desc:"Автоматизируют назначенную инфузионную терапию.",price:650},
+{id:"robot",name:"🤖 Медицинский робот",desc:"Помогает автоматизировать рутинные процедуры.",price:1000}
+];
+
+const illnesses=[
+{name:"Простуда",severity:1,fee:150},
+{name:"Обезвоживание",severity:1,fee:180},
+{name:"Высокая температура",severity:2,fee:250},
+{name:"Травма ноги",severity:2,fee:320},
+{name:"Боль в животе",severity:2,fee:280},
+{name:"Тяжёлое состояние",severity:3,fee:500}
+];
+
+let state;
+
+function freshState(){
+return {
+money:1500,rep:50,cured:0,beds:3,staff:1,
+icu:false,nextId:1,patients:[],gear:{}
+};
+}
+
+function log(text){
+const line=document.createElement("div");
+line.textContent="• "+text;
+$("log").prepend(line);
+while($("log").children.length>40){
+$("log").lastElementChild.remove();
+}
+}
+
+function level(id){return state.gear[id]||0}
+
+function cost(item){
+return Math.floor(item.price*Math.pow(1.65,level(item.id)));
+}
+
+function buyEquipment(id){
+const item=equipment.find(x=>x.id===id);
+const lv=level(id);
+if(lv>=5)return;
+const price=cost(item);
+if(state.money<price){
+log("Недостаточно денег для покупки: "+item.name);
+return;
+}
+state.money-=price;
+state.gear[id]=lv+1;
+log(item.name+" улучшено до уровня "+(lv+1)+".");
+render();
+}
+
+function admit(){
+if(state.patients.length>=state.beds){
+log("Нет свободных коек. Купи дополнительную койку или выпиши пациента.");
+return;
+}
+const illness=illnesses[Math.floor(Math.random()*illnesses.length)];
+const names=["Анна","Иван","Мария","Олег","Елена","Дмитрий","София","Алексей","Алина","Максим"];
+const p={
+id:state.nextId++,
+name:names[Math.floor(Math.random()*names.length)],
+illness:illness.name,
+severity:illness.severity,
+fee:illness.fee,
+exam:false,lab:false,xray:false,med:false,
+monitor:false,infusion:false,
+robotDone:false
+};
+state.patients.push(p);
+log("Поступил пациент "+p.name+". Жалобы: "+p.illness+".");
+render();
+}
+
+function massAction(device,field,description,filter=()=>true){
+if(!level(device)){
+log("Для этого действия сначала купи оборудование: "+equipment.find(x=>x.id===device).name+".");
+return;
+}
+const list=state.patients.filter(p=>filter(p)&&!p[field]);
+if(!list.length){
+log("Нет пациентов, которым сейчас требуется это действие.");
+return;
+}
+list.forEach(p=>p[field]=true);
+log(description+": обработано пациентов — "+list.length+".");
+render();
+}
+
+function examine(p){
+if(!level("diag")){
+log("Сначала купи диагностический комплекс.");
+return;
+}
+if(p.exam){log(p.name+" уже осмотрен.");return;}
+p.exam=true;
+log(p.name+" осмотрен. Выявлено: "+p.illness+".");
+render();
+}
+
+function giveMedicine(p){
+if(!level("med")){
+log("Сначала купи станцию выдачи лекарств.");
+return;
+}
+if(!p.exam){log("Сначала нужно осмотреть пациента.");return;}
+if(p.med){log("Лекарства уже выданы.");return;}
+p.med=true;
+log(p.name+": назначенные лекарства выданы.");
+render();
+}
+
+function treat(p){
+if(!p.exam){
+log("Сначала проведи осмотр пациента.");
+return;
+}
+if(p.severity===3&&!state.icu){
+log("Тяжёлому пациенту требуется открытая реанимация.");
+return;
+}
+if(p.severity===3&&!p.monitor&&!level("robot")){
+log("Для тяжёлого пациента сначала проведи мониторинг.");
+return;
+}
+if(!p.med){
+log("Сначала выдай пациенту назначенные лекарства.");
+return;
+}
+if(p.severity>=2&&!p.lab&&!p.xray&&p.illness==="Травма ноги"){
+log("Пациенту с травмой требуется рентген.");
+return;
+}
+if(p.severity===3&&!p.infusion){
+log("Для завершения лечения тяжёлого пациента нужна назначенная инфузионная терапия.");
+return;
+}
+const robotBonus=level("robot")?level("robot")*15:0;
+const reward=p.fee+robotBonus;
+state.money+=reward;
+state.cured++;
+state.rep=Math.min(100,state.rep+2);
+state.patients=state.patients.filter(x=>x.id!==p.id);
+log(p.name+" успешно выписан. Доход: "+reward+" ₽.");
+render();
+}
+
+function renderPatients(){
+const box=$("patients");
+box.innerHTML="";
+if(!state.patients.length){
+box.textContent="Пока пациентов нет. Нажми «Принять пациента».";
+return;
+}
+state.patients.forEach(p=>{
+const card=document.createElement("div");
+card.className="item";
+const title=document.createElement("h3");
+title.textContent="🧑‍⚕️ "+p.name;
+card.append(title);
+
+const info=document.createElement("p");
+info.textContent="Жалобы: "+p.illness+" · Сложность: "+"★".repeat(p.severity);
+card.append(info);
+
+const progress=document.createElement("div");
+progress.className="progress";
+const bar=document.createElement("span");
+const steps=[p.exam,p.lab||p.xray,p.med,p.severity<3||p.monitor,p.severity<3||p.infusion];
+bar.style.width=(steps.filter(Boolean).length/steps.length*100)+"%";
+progress.append(bar);
+card.append(progress);
+
+const statuses=[
+["Осмотр",p.exam],
+["Анализы",p.lab],
+["Рентген",p.xray],
+["Лекарства",p.med],
+["Мониторинг",p.monitor],
+["Инфузия",p.infusion]
+];
+const st=document.createElement("p");
+st.className="muted";
+st.textContent=statuses.map(([name,done])=>name+": "+(done?"✅":"⏳")).join(" · ");
+card.append(st);
+
+const actions=document.createElement("div");
+actions.className="actions";
+
+function addButton(label,fn){
+const b=document.createElement("button");
+b.textContent=label;
+b.addEventListener("click",fn);
+actions.append(b);
+}
+
+addButton("🔍 Осмотр",()=>examine(p));
+addButton("💊 Лекарства",()=>giveMedicine(p));
+
+if(p.illness==="Травма ноги"){
+addButton("🩻 Рентген",()=>{
+if(!level("xray")){log("Сначала купи рентген-аппарат.");return}
+p.xray=true;log(p.name+": рентген выполнен.");render();
+});
+}
+
+addButton("🧪 Анализы",()=>{
+if(!level("lab")){log("Сначала купи лабораторию.");return}
+if(!p.exam){log("Сначала осмотри пациента.");return}
+p.lab=true;log(p.name+": анализы готовы.");render();
+});
+
+if(p.severity===3){
+addButton("🫀 Мониторинг",()=>{
+if(!state.icu){log("Сначала открой реанимацию.");return}
+if(!level("monitor")){log("Сначала купи реанимационный монитор.");return}
+p.monitor=true;log(p.name+": мониторинг начат.");render();
+});
+addButton("💉 Инфузия",()=>{
+if(!level("infusion")){log("Сначала купи инфузионные насосы.");return}
+if(!p.exam){log("Сначала осмотри пациента.");return}
+p.infusion=true;log(p.name+": назначенная инфузионная терапия проведена.");render();
+});
+}
+
+addButton("✅ Завершить лечение",()=>treat(p));
+card.append(actions);
+box.append(card);
+});
+}
+
+function renderShop(){
+const box=$("shop");
+box.innerHTML="";
+equipment.forEach(item=>{
+const lv=level(item.id);
+const price=cost(item);
+const card=document.createElement("div");
+card.className="item";
+const h=document.createElement("h3");h.textContent=item.name;card.append(h);
+const desc=document.createElement("p");desc.className="muted";desc.textContent=item.desc;card.append(desc);
+const badge=document.createElement("span");badge.className="badge";badge.textContent="Уровень "+lv+" / 5";card.append(badge);
+const prog=document.createElement("div");prog.className="progress";
+const bar=document.createElement("span");bar.style.width=(lv*20)+"%";prog.append(bar);card.append(prog);
+const priceText=document.createElement("p");priceText.textContent=lv===5?"Максимальный уровень":"Стоимость: "+price+" ₽";card.append(priceText);
+const btn=document.createElement("button");
+btn.textContent=lv===0?"Купить оборудование":lv===5?"Максимальный уровень":"Улучшить до "+(lv+1)+" уровня";
+btn.disabled=lv===5;
+btn.addEventListener("click",()=>buyEquipment(item.id));
+card.append(btn);
+box.append(card);
+});
+}
+
+function render(){
+$("money").textContent=state.money;
+$("count").textContent=state.patients.length;
+$("rep").textContent=state.rep;
+$("cured").textContent=state.cured;
+$("beds").textContent=state.beds-state.patients.length;
+$("financeMoney").textContent=state.money+" ₽";
+$("financeCured").textContent=state.cured;
+$("financeBeds").textContent=state.beds;
+$("financeStaff").textContent=state.staff;
+$("openICU").textContent=state.icu?"✅ Реанимация открыта":"🏥 Открыть реанимацию — 400 ₽";
+$("openICU").disabled=state.icu;
